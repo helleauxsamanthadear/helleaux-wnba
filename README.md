@@ -1,2 +1,2 @@
 # helleaux-wnba
-WBNA model and dashboard
+WNBA model and dashboard
