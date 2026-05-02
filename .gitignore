@@ -216,6 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
 # JetBrains
 .idea/
 *.iml
+
+# Python cache
+__pycache__/
+*.pyc
