@@ -31,7 +31,7 @@ def load_ratings() -> dict:
 def model_home_win_prob(home: str, away: str, ratings: dict) -> float | None:
     """Compute home team win probability from Elo ratings + home court advantage.
     Returns None if either team is missing from ratings."""
-    HCA = 85.0
+    HCA = 40.0
     home_rating = ratings.get(home)
     away_rating = ratings.get(away)
     if home_rating is None or away_rating is None:

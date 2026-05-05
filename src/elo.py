@@ -43,9 +43,10 @@ WNBA_FRANCHISES = frozenset({
 # Elo parameters
 INITIAL_RATING = 1500.0
 K = 20.0           # how much each game moves a rating
-HCA = 85.0         # home court advantage in Elo points
-                   # ~85 corresponds to about a 60% home win rate at equal strength
-
+HCA = 40.0         # home court advantage in Elo points
+                   # ~40 corresponds to about a 56% home win rate at equal strength.
+                   # Empirically tuned on 2024-2025 WNBA data — log loss minimum.
+                   # Charter flights starting in 2024 likely reduced HCA from historical norms.
 # Expansion team starting ratings — applied the first time each team appears in the data.
 # Update this dict each expansion year. Real expansion teams typically struggle in year one;
 # Golden State in 2025 was an outlier (finished ~average).
@@ -60,17 +61,25 @@ def expected_score(rating_a: float, rating_b: float) -> float:
     return 1.0 / (1.0 + 10 ** ((rating_b - rating_a) / 400))
 
 
-def update_ratings(home_rating: float, away_rating: float, home_won: bool) -> tuple[float, float]:
+def update_ratings(
+    home_rating: float,
+    away_rating: float,
+    home_won: bool,
+    hca: float = HCA,
+    k: float = K,
+) -> tuple[float, float]:
     """Apply one game's Elo update. Returns (new_home_rating, new_away_rating)."""
-    expected_home = expected_score(home_rating + HCA, away_rating)
+    expected_home = expected_score(home_rating + hca, away_rating)
     actual_home = 1.0 if home_won else 0.0
 
-    delta = K * (actual_home - expected_home)
+    delta = k * (actual_home - expected_home)
     return home_rating + delta, away_rating - delta
 
 
-def build_ratings() -> dict[str, float]:
-    """Walk all completed games in date order, return final ratings per team."""
+def build_ratings(return_history: bool = False, hca: float = HCA, k: float = K):
+    """Walk all completed games in date order. Always returns final ratings.
+    If return_history=True, also returns a DataFrame with the model's pre-game
+    prediction for each game (useful for backtesting)."""
     with sqlite3.connect(DB_PATH) as conn:
         games = pd.read_sql_query(
             """
@@ -93,25 +102,39 @@ def build_ratings() -> dict[str, float]:
     games = games[
         games["home_display_name"].isin(WNBA_FRANCHISES)
         & games["away_display_name"].isin(WNBA_FRANCHISES)
-        ]
-    print(f"Using {len(games)} games (after filtering exhibitions).")
-
+    ]
+    # print(f"Using {len(games)} games (after filtering exhibitions).")
     ratings: dict[str, float] = defaultdict(lambda: INITIAL_RATING)
-    # Seed expansion teams with custom starting ratings instead of league average
     for team, seed in EXPANSION_SEEDS.items():
         ratings[team] = seed
+
+    history_rows = []
 
     for _, g in games.iterrows():
         home = g["home_display_name"]
         away = g["away_display_name"]
         home_won = g["home_score"] > g["away_score"]
 
-        new_home, new_away = update_ratings(ratings[home], ratings[away], home_won)
+        # Capture the prediction BEFORE this game updates the ratings
+        home_prob = expected_score(ratings[home] + hca, ratings[away])
+        if return_history:
+            history_rows.append({
+                "game_date": g["game_date"],
+                "home": home,
+                "away": away,
+                "home_rating_pre": ratings[home],
+                "away_rating_pre": ratings[away],
+                "home_prob": home_prob,
+                "home_won": home_won,
+            })
+
+        new_home, new_away = update_ratings(ratings[home], ratings[away], home_won, hca=hca, k=k)
         ratings[home] = new_home
         ratings[away] = new_away
 
+    if return_history:
+        return dict(ratings), pd.DataFrame(history_rows)
     return dict(ratings)
-
 
 def win_probability(home_team: str, away_team: str, ratings: dict[str, float]) -> float:
     """Probability the home team wins, given current ratings + home court advantage."""
