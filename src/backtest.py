@@ -49,23 +49,30 @@ def main():
     print("Building ratings + history...")
     _, history = build_ratings(return_history=True)
 
-    # Skip the early "burn-in" period where everyone starts at 1500.
-    # First ~30 games are essentially coin flips because no team has any signal yet.
+    # Convert game_date to datetime so we can filter by year
+    history["game_date"] = pd.to_datetime(history["game_date"], errors="coerce")
+    history["year"] = history["game_date"].dt.year
+
+    # ---- Full backtest, excluding 30-game burn-in ----
     burn_in = 30
-    print(f"Excluding first {burn_in} games as burn-in.")
-    eval_history = history.iloc[burn_in:]
+    print(f"\nFull backtest (excluding first {burn_in} games as burn-in):")
+    full_eval = history.iloc[burn_in:]
+    full_results = evaluate(full_eval)
+    print(f"  Games:    {full_results['n_games']}")
+    print(f"  Accuracy: {full_results['accuracy']:.1%}")
+    print(f"  Log loss: {full_results['log_loss']:.4f}")
 
-    results = evaluate(eval_history)
-
-    print(f"\n=== Backtest Results ===")
-    print(f"Games evaluated:  {results['n_games']}")
-    print(f"Accuracy:         {results['accuracy']:.1%}")
-    print(f"Log loss:         {results['log_loss']:.4f}")
-    print(f"  (random = 0.693, lower is better)")
-
-    print(f"\n=== Calibration ===")
-    print(f"How often the home team actually won, grouped by predicted probability:")
-    print(results["calibration"].to_string())
+    # ---- 2026 only ----
+    only_2026 = history[history["year"] == 2026]
+    if len(only_2026) > 0:
+        print(f"\n2026 only ({len(only_2026)} games — current season performance):")
+        results_2026 = evaluate(only_2026)
+        print(f"  Accuracy: {results_2026['accuracy']:.1%}")
+        print(f"  Log loss: {results_2026['log_loss']:.4f}")
+        print(f"\n  Calibration:")
+        print(results_2026["calibration"].to_string())
+    else:
+        print("\nNo 2026 games yet.")
 
 
 if __name__ == "__main__":

@@ -41,9 +41,15 @@ WNBA_FRANCHISES = frozenset({
 })
 
 # Elo parameters
+# Elo parameters
 INITIAL_RATING = 1500.0
-K = 20.0           # how much each game moves a rating
-HCA = 40.0         # home court advantage in Elo points
+K = 20.0
+HCA = 40.0
+HALF_LIFE_DAYS = 365.0   # Time decay: half a game's influence per year.
+                         # Empirically tuned on 2024-2026 data via tune_decay.py.
+                         # 240 was slightly better on 2026 games (0.7057 vs 0.7079 log loss),
+                         # but 365 holds up across full history. Roster changes between
+                         # seasons mean league-state ~1yr ago is roughly half-relevant.
                    # ~40 corresponds to about a 56% home win rate at equal strength.
                    # Empirically tuned on 2024-2025 WNBA data — log loss minimum.
                    # Charter flights starting in 2024 likely reduced HCA from historical norms.
@@ -75,8 +81,12 @@ def update_ratings(
     delta = k * (actual_home - expected_home)
     return home_rating + delta, away_rating - delta
 
-
-def build_ratings(return_history: bool = False, hca: float = HCA, k: float = K):
+def build_ratings(
+    return_history: bool = False,
+    hca: float = HCA,
+    k: float = K,
+    half_life_days: float = HALF_LIFE_DAYS,
+):
     """Walk all completed games in date order. Always returns final ratings.
     If return_history=True, also returns a DataFrame with the model's pre-game
     prediction for each game (useful for backtesting)."""
@@ -104,6 +114,13 @@ def build_ratings(return_history: bool = False, hca: float = HCA, k: float = K):
         & games["away_display_name"].isin(WNBA_FRANCHISES)
     ]
     # print(f"Using {len(games)} games (after filtering exhibitions).")
+
+    # Compute each game's age in days relative to the most recent game in the dataset.
+    games = games.copy()
+    games["game_date_dt"] = pd.to_datetime(games["game_date"], errors="coerce")
+    latest_date = games["game_date_dt"].max()
+    games["age_days"] = (latest_date - games["game_date_dt"]).dt.days
+
     ratings: dict[str, float] = defaultdict(lambda: INITIAL_RATING)
     for team, seed in EXPANSION_SEEDS.items():
         ratings[team] = seed
@@ -128,14 +145,19 @@ def build_ratings(return_history: bool = False, hca: float = HCA, k: float = K):
                 "home_won": home_won,
             })
 
-        new_home, new_away = update_ratings(ratings[home], ratings[away], home_won, hca=hca, k=k)
+        # Time decay: scale K by how recent this game is.
+        weight = 0.5 ** (g["age_days"] / half_life_days)
+        effective_k = k * weight
+
+        new_home, new_away = update_ratings(
+            ratings[home], ratings[away], home_won, hca=hca, k=effective_k
+        )
         ratings[home] = new_home
         ratings[away] = new_away
 
     if return_history:
         return dict(ratings), pd.DataFrame(history_rows)
     return dict(ratings)
-
 def win_probability(home_team: str, away_team: str, ratings: dict[str, float]) -> float:
     """Probability the home team wins, given current ratings + home court advantage."""
     home_rating = ratings.get(home_team, INITIAL_RATING)
