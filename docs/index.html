@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WNBA Stat Leaders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F9; --surface:#FFFFFF; --sunk:#EAEEF3; --ink:#141A26; --muted:#5A6478; --rule:#D8DEE7;
+  --accent:#E4580B; --accent-soft:#FBE3D5; --playoff:#0E8A8C; --playoff-soft:#D5EEEE;
+  --bar:#C9D1DC; --focus:#1F6FEB;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1118; --surface:#151B25; --sunk:#1B2330; --ink:#E9EDF3; --muted:#9AA5B8; --rule:#273142;
+    --accent:#FF7433; --accent-soft:#3A2418; --playoff:#2FB9BB; --playoff-soft:#15302F; --bar:#2A3547; --focus:#6EA8FF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1118; --surface:#151B25; --sunk:#1B2330; --ink:#E9EDF3; --muted:#9AA5B8; --rule:#273142;
+  --accent:#FF7433; --accent-soft:#3A2418; --playoff:#2FB9BB; --playoff-soft:#15302F; --bar:#2A3547; --focus:#6EA8FF;
+  color-scheme:dark;
+}
+body.mode-playoffs{ --accent:var(--playoff); --accent-soft:var(--playoff-soft); }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--body);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 56px}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+
+/* Masthead */
+.mast{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px;padding-bottom:18px;border-bottom:3px solid var(--ink)}
+.eyebrow{font:600 12px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(38px,6vw,64px)/.9 var(--display);letter-spacing:-.01em;margin:8px 0 0;text-transform:uppercase;text-wrap:balance}
+h1 .yr{color:var(--accent);transition:color .2s}
+.meta{font-size:13px;color:var(--muted);text-align:right}
+.meta b{color:var(--ink);font-weight:600}
+
+/* Controls */
+.controls{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin-top:18px}
+.controls + .controls{margin-top:12px}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--sunk);border-radius:999px;padding:4px;gap:2px}
+.seg button{font:700 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;border:0;background:transparent;color:var(--muted);padding:10px 16px;border-radius:999px;cursor:pointer}
+.seg.small button{font-size:13px;padding:8px 13px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg.main button[aria-pressed="true"]::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips .lbl{font-size:13px;color:var(--muted);margin-right:4px}
+.chips button{border:1px solid var(--rule);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:600 13px/1 var(--body);cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+label.field{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+select,input[type=search]{font:500 14px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:8px 10px}
+input[type=search]{min-width:0;width:220px;max-width:100%}
+.check{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.notice{margin:12px 0 0;font-size:13px;color:var(--muted)}
+.notice.warn{color:var(--ink);background:var(--accent-soft);border-radius:8px;padding:10px 12px}
+
+/* Cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:22px;align-items:start}
+.grid.series{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:16px 16px 12px;display:flex;flex-direction:column;gap:10px}
+.card h2{margin:0;font:700 14px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.card h2 span{font-weight:600;letter-spacing:.04em}
+.lead{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 12px;padding-bottom:10px;border-bottom:1px solid var(--rule)}
+.lead .who{font:700 22px/1.05 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.lead .tm{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.lead .val{grid-row:1 / span 2;grid-column:2;font:800 52px/.85 var(--display);color:var(--accent);transition:color .2s}
+ol.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+ol.rank li{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center;font-size:13.5px}
+ol.rank .n{color:var(--muted);font-size:12px;text-align:right}
+ol.rank .nm{position:relative;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:2px 0}
+ol.rank .nm i{position:absolute;left:0;bottom:0;height:2px;background:var(--bar);border-radius:2px}
+ol.rank .nm small{color:var(--muted);font-size:11px;letter-spacing:.05em;margin-left:6px}
+ol.rank .v{font-weight:600}
+.empty{font-size:13px;color:var(--muted);padding:8px 0}
+.more{align-self:flex-start;border:0;background:none;color:var(--muted);font:600 12.5px var(--body);cursor:pointer;padding:2px 0;text-decoration:underline;text-underline-offset:3px}
+
+/* Series cards */
+.sh{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.sh .side{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.sh .side.b{align-items:flex-end;text-align:right}
+.sh .nick{font:800 22px/1 var(--display);text-transform:uppercase;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sh .wins{font:800 36px/1 var(--display);display:flex;gap:6px;align-items:center}
+.sh .wins b{min-width:.6em;text-align:center}
+.sh .wins b.up{color:var(--accent)}
+.sh .wins span{color:var(--muted);font-weight:600;font-size:24px}
+.status{font:600 12px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center}
+.status.done{color:var(--accent)}
+.games{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.games span{font-size:12px;border:1px solid var(--rule);border-radius:6px;padding:3px 7px;color:var(--muted)}
+.games span b{color:var(--ink);font-weight:600}
+.tt{display:inline-block;font:700 10.5px/1 var(--body);letter-spacing:.06em;border-radius:4px;padding:3px 5px;vertical-align:1px}
+.tt.a{background:var(--ink);color:var(--bg)}
+.tt.b{border:1px solid var(--muted);color:var(--ink);padding:2px 4px}
+.series .sub{font:700 13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--rule)}
+.series ol.rank li{grid-template-columns:18px 1fr auto auto}
+.series ol.rank .gp{color:var(--muted);font-size:11.5px}
+
+/* Table */
+.tablehead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin:40px 0 12px}
+.tablehead h2{margin:0;font:800 30px/1 var(--display);text-transform:uppercase}
+.tablehead h2 small{font:600 14px var(--body);color:var(--muted);text-transform:none;margin-left:10px}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--rule);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:14px}
+th,td{padding:9px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{position:sticky;top:0;background:var(--surface);font:700 13px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;user-select:none}
+th button{all:unset;cursor:pointer}
+th[aria-sort]{color:var(--ink)}
+th[aria-sort="descending"]::after{content:" ▼";color:var(--accent)}
+th[aria-sort="ascending"]::after{content:" ▲";color:var(--accent)}
+tbody tr:hover{background:var(--sunk)}
+td.sorted{font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+td.pl{font-weight:600}
+td .tag{font:600 11px var(--body);letter-spacing:.06em;color:var(--muted)}
+td.na{color:var(--muted)}
+footer{margin-top:28px;font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+@media (max-width:560px){
+  .meta{text-align:left}
+  .lead .val{font-size:44px}
+  input[type=search]{width:100%}
+  .sh .nick{font-size:20px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <div class="eyebrow" id="eyebrow">WNBA · Stat leaders</div>
+      <h1>Stat Leaders <span class="yr" id="yr">2026</span></h1>
+    </div>
+    <div class="meta" id="meta">Loading stats…</div>
+  </header>
+
+  <div class="controls">
+    <div class="seg main" role="group" aria-label="Season type">
+      <button type="button" id="btn-regular" aria-pressed="true" data-set="regular">Regular season</button>
+      <button type="button" id="btn-playoffs" aria-pressed="false" data-set="playoffs">Playoffs</button>
+    </div>
+    <div class="seg small" role="group" aria-label="Stat type" id="modeseg">
+      <button type="button" id="btn-pg" aria-pressed="true" data-mode="pg">Per game</button>
+      <button type="button" id="btn-tot" aria-pressed="false" data-mode="tot">Totals</button>
+    </div>
+    <label class="field" for="team">Team
+      <select id="team"><option value="">All teams</option></select>
+    </label>
+    <label class="check" for="qual"><input type="checkbox" id="qual" checked> Qualified players only</label>
+  </div>
+
+  <div class="controls" id="pocontrols" hidden>
+    <div class="seg small" role="group" aria-label="Playoff round" id="roundseg"></div>
+    <div class="chips" role="group" aria-label="Rank series by" id="statchips"></div>
+  </div>
+
+  <p class="notice" id="qualnote"></p>
+  <p class="notice warn" id="previewnote" hidden></p>
+
+  <section class="grid" id="grid" aria-label="Leaders"></section>
+
+  <div class="tablehead">
+    <h2>All players<small id="tablesub"></small></h2>
+    <input type="search" id="search" placeholder="Search player or team" aria-label="Search player or team">
+  </div>
+  <div class="scroll"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+
+  <footer>
+    <span id="source">Source: Basketball-Reference.com</span>
+    <span id="footnote"></span>
+  </footer>
+</div>
+
+<script>
+const TEAMS = {ATL:["Atlanta","Dream"],CHI:["Chicago","Sky"],CON:["Connecticut","Sun"],DAL:["Dallas","Wings"],GSV:["Golden State","Valkyries"],
+  IND:["Indiana","Fever"],LVA:["Las Vegas","Aces"],LAS:["Los Angeles","Sparks"],MIN:["Minnesota","Lynx"],NYL:["New York","Liberty"],
+  PHO:["Phoenix","Mercury"],POR:["Portland","Fire"],SEA:["Seattle","Storm"],TOR:["Toronto","Tempo"],WAS:["Washington","Mystics"]};
+const ROUNDS = {1:"First Round", 2:"Semifinals", 3:"Finals"};
+const NEED = {1:2, 2:3, 3:4};   // wins needed: best of 3, 5, 7
+
+const CATS = [
+  {key:"pts", label:"Points", unit:["PPG","PTS"]},
+  {key:"trb", label:"Rebounds", unit:["RPG","REB"]},
+  {key:"ast", label:"Assists", unit:["APG","AST"]},
+  {key:"stl", label:"Steals", unit:["SPG","STL"]},
+  {key:"blk", label:"Blocks", unit:["BPG","BLK"]},
+  {key:"fg3", label:"Threes made", unit:["3PM","3PM"]},
+  {key:"fg_pct", label:"Field goal %", unit:["FG%","FG%"], pct:true, min:{f:"fga", v:5, txt:"FGA"}},
+  {key:"fg3_pct", label:"Three-point %", unit:["3P%","3P%"], pct:true, min:{f:"fg3a", v:2, txt:"3PA"}},
+  {key:"ft_pct", label:"Free throw %", unit:["FT%","FT%"], pct:true, min:{f:"fta", v:2, txt:"FTA"}},
+  {key:"mp", label:"Minutes", unit:["MPG","MIN"]},
+];
+const SERIES_STATS = ["pts","trb","ast","fg3","stl","blk","mp","fg_pct"];
+const COLS = [
+  {key:"name",label:"Player",txt:true},{key:"team",label:"Team",txt:true},{key:"g",label:"G"},{key:"mp",label:"MIN"},
+  {key:"pts",label:"PTS"},{key:"trb",label:"REB"},{key:"ast",label:"AST"},{key:"stl",label:"STL"},{key:"blk",label:"BLK"},
+  {key:"tov",label:"TOV"},{key:"fg3",label:"3PM"},{key:"fg_pct",label:"FG%",pct:true},{key:"fg3_pct",label:"3P%",pct:true},{key:"ft_pct",label:"FT%",pct:true},
+];
+const COUNT = ["mp","pts","trb","ast","stl","blk","tov","fg","fga","fg3","fg3a","ft","fta"];
+
+const state = {data:null, set:"regular", mode:"pg", team:"", qual:true, round:null, stat:"pts", q:"",
+               sort:{key:"pts",dir:-1}, open:new Set()};
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nick = t => t.split("/").map(x => TEAMS[x]?.[1] || x).join(" / ");
+const full = t => t.split("/").map(x => TEAMS[x] ? TEAMS[x].join(" ") : x).join(" / ");
+const cat = k => CATS.find(c => c.key === k);
+function fmt(v, pct){
+  if (v == null || Number.isNaN(v)) return "—";
+  if (pct) return v >= 1 ? "1.000" : v.toFixed(3).replace(/^0/, "");
+  return state.mode === "tot" ? Math.round(v).toLocaleString() : v.toFixed(1);
+}
+const unit = c => c.unit[state.mode === "tot" ? 1 : 0];
+const store = (k, v) => { try { localStorage.setItem(k, v); } catch(e) {} };
+const recall = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+
+state.set = recall("wsl-set") === "playoffs" ? "playoffs" : "regular";
+state.mode = recall("wsl-mode") === "tot" ? "tot" : "pg";
+if (location.hash === "#playoffs") state.set = "playoffs";
+if (location.hash === "#regular") state.set = "regular";
+
+/* ---------- data shaping ---------- */
+function regularPlayers(){
+  return (state.data?.regular?.players || []).map(p => ({name:p.name, team:p.team, g:p.g, ...(state.mode === "tot" ? p.tot : p.pg)}));
+}
+function aggregate(lines){
+  const m = new Map();
+  for (const l of lines){
+    const k = l.n + "|" + l.t; let a = m.get(k);
+    if (!a){ a = {name:l.n, team:l.t, g:0}; COUNT.forEach(c => a[c] = 0); m.set(k, a); }
+    a.g++; a.mp += l.min; for (const c of COUNT) if (c !== "mp") a[c] += l[c] || 0;
+  }
+  return [...m.values()].map(a => {
+    const o = {name:a.name, team:a.team, g:a.g,
+      fg_pct: a.fga ? a.fg/a.fga : null, fg3_pct: a.fg3a ? a.fg3/a.fg3a : null, ft_pct: a.fta ? a.ft/a.fta : null};
+    for (const c of COUNT) o[c] = state.mode === "tot" ? a[c] : a[c] / a.g;
+    return o;
+  });
+}
+const po = () => state.data?.playoffs || null;
+function roundsAvailable(){ return [...new Set((po()?.series || []).map(s => s.round))].sort((a,b) => a-b); }
+function linesFor(filter){
+  const P = po(); if (!P) return [];
+  const gameRound = new Map(P.games.map(g => [g.id, g]));
+  return P.lines.filter(l => { const g = gameRound.get(l.g); return g && filter(g); });
+}
+function currentList(){
+  if (state.set === "regular") return regularPlayers();
+  const r = state.round;
+  return aggregate(linesFor(g => r === "all" || g.round === r));
+}
+function minGames(list){ const mx = Math.max(0, ...list.map(p => p.g || 0)); return Math.ceil(mx / 2); }
+function qualifies(p, c, mg){
+  if (!state.qual) return true;
+  if ((p.g || 0) < mg) return false;
+  if (c.min){ const need = state.mode === "tot" ? c.min.v * Math.max(1, mg) : c.min.v; return (p[c.min.f] ?? 0) >= need; }
+  return true;
+}
+function ranked(list, c){
+  const mg = minGames(list);
+  return list.filter(p => p[c.key] != null && qualifies(p, c, mg)).sort((a,b) => b[c.key] - a[c.key]);
+}
+
+/* ---------- rendering ---------- */
+function leaderCard(c, list, extra = ""){
+  const top = ranked(list, c).slice(0, 10);
+  const minTxt = c.min && state.qual ? ` · min ${state.mode === "tot" ? "" : c.min.v + " "}${c.min.txt}${state.mode === "tot" ? " per game" : ""}` : "";
+  if (!top.length) return `<article class="card"><h2>${c.label}<span>${unit(c)}</span></h2><p class="empty">No qualified players yet.</p></article>`;
+  const [l, ...rest] = top; const mx = l[c.key] || 1;
+  return `<article class="card"><h2>${c.label}<span>${unit(c)}${minTxt}</span></h2>
+    <div class="lead"><div class="who">${esc(l.name)}</div><div class="val">${fmt(l[c.key], c.pct)}</div>
+    <div class="tm">${esc(full(l.team))}</div></div>
+    <ol class="rank">${rest.map((p,i) => `<li><span class="n">${i+2}</span>
+      <span class="nm"><i style="width:${Math.max(4, (p[c.key]/mx)*100).toFixed(1)}%"></i>${esc(p.name)}<small>${esc(p.team)}</small></span>
+      <span class="v">${fmt(p[c.key], c.pct)}</span></li>`).join("")}</ol>${extra}</article>`;
+}
+
+function seriesStatus(s, games){
+  const [a, b] = s.teams, wa = s.wins[a] || 0, wb = s.wins[b] || 0, need = NEED[s.round] || 2;
+  const played = games.filter(g => g.final).length;
+  if (wa >= need || wb >= need){ const w = wa > wb ? a : b; return {txt:`${nick(w)} win ${Math.max(wa,wb)}–${Math.min(wa,wb)}`, done:true}; }
+  if (!played){
+    const next = games.find(g => !g.final);
+    return {txt: next ? `Game 1 · ${when(next.date)}` : "Series not started", done:false};
+  }
+  if (wa === wb) return {txt:`Series tied ${wa}–${wb}`, done:false};
+  const lead = wa > wb ? a : b; return {txt:`${nick(lead)} lead ${Math.max(wa,wb)}–${Math.min(wa,wb)}`, done:false};
+}
+function when(iso){
+  const d = new Date(iso);
+  return d.toLocaleString([], {weekday:"short", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+}
+
+function seriesCard(s){
+  const P = po(); const c = cat(state.stat);
+  const games = P.games.filter(g => g.round === s.round && [g.home, g.away].sort().join() === [...s.teams].sort().join())
+                       .sort((x,y) => x.date.localeCompare(y.date));
+  // higher seed hosts Game 1: show the home team of Game 1 on the right
+  const g1 = games[0]; const right = g1 ? g1.home : s.teams[1]; const left = s.teams.find(t => t !== right);
+  const wl = s.wins[left] || 0, wr = s.wins[right] || 0;
+  const st = seriesStatus(s, games);
+  const chips = games.map((g,i) => g.final
+      ? `<span>G${i+1} <b>${g.hs > g.as ? g.home : g.away}</b> ${Math.max(g.hs,g.as)}–${Math.min(g.hs,g.as)}</span>`
+      : `<span>G${i+1} · ${when(g.date)}</span>`).slice(0, 7).join("");
+  const ids = new Set(games.map(g => g.id));
+  const list = aggregate(P.lines.filter(l => ids.has(l.g)));
+  const rows = ranked(list, c);
+  const open = state.open.has(s.id); const shown = open ? rows : rows.slice(0, 10);
+  const tag = t => `<span class="tt ${t === left ? "a" : "b"}">${esc(t)}</span>`;
+  let body;
+  if (!rows.length){
+    body = `<p class="empty">${games.some(g => g.final) ? "No qualified players for this stat yet." : "Player stats appear here after Game 1."}</p>`;
+  } else {
+    const [l, ...rest] = shown; const mx = l[c.key] || 1;
+    body = `<div class="lead"><div class="who">${esc(l.name)}</div><div class="val">${fmt(l[c.key], c.pct)}</div>
+      <div class="tm">${tag(l.team)} ${esc(nick(l.team))} · ${l.g} G</div></div>
+      <ol class="rank">${rest.map((p,i) => `<li><span class="n">${i+2}</span>
+        <span class="nm"><i style="width:${Math.max(4, (p[c.key]/mx)*100).toFixed(1)}%"></i>${esc(p.name)}</span>
+        ${tag(p.team)}<span class="v">${fmt(p[c.key], c.pct)}</span></li>`).join("")}</ol>
+      ${rows.length > 10 ? `<button type="button" class="more" data-series="${esc(s.id)}">${open ? "Show top 10" : `Show all ${rows.length}`}</button>` : ""}`;
+  }
+  return `<article class="card series">
+    <div class="sh">
+      <div class="side"><span class="nick">${esc(nick(left))}</span>${tag(left)}</div>
+      <div class="wins"><b class="${wl > wr ? "up" : ""}">${wl}</b><span>–</span><b class="${wr > wl ? "up" : ""}">${wr}</b></div>
+      <div class="side b"><span class="nick">${esc(nick(right))}</span>${tag(right)}</div>
+    </div>
+    <div class="status ${st.done ? "done" : ""}">${esc(st.txt)}</div>
+    ${chips ? `<div class="games">${chips}</div>` : ""}
+    <div class="sub"><span>${c.label}</span><span>${unit(c)}</span></div>
+    ${body}
+  </article>`;
+}
+
+function renderGrid(list){
+  const grid = $("#grid");
+  grid.classList.toggle("series", state.set === "playoffs" && state.round !== "all");
+  if (state.set === "playoffs"){
+    const P = po();
+    if (!P || !(P.series || []).length){
+      grid.innerHTML = `<article class="card" style="grid-column:1/-1"><h2>No playoff games yet</h2><p class="empty">Series cards appear once the bracket is in the data.</p></article>`;
+      return;
+    }
+    if (state.round !== "all"){
+      let ss = P.series.filter(s => s.round === state.round);
+      if (state.team) ss = ss.filter(s => s.teams.includes(state.team));
+      const first = s => (P.games.find(g => g.round === s.round && s.teams.includes(g.home) && s.teams.includes(g.away))?.date) || "";
+      ss.sort((a,b) => first(a).localeCompare(first(b)));
+      grid.innerHTML = ss.length ? ss.map(seriesCard).join("") : `<article class="card"><p class="empty">That team isn't in this round.</p></article>`;
+      return;
+    }
+  }
+  if (!list.length){
+    grid.innerHTML = `<article class="card" style="grid-column:1/-1"><h2>No stats yet</h2><p class="empty">Nothing in the data file for this view.</p></article>`;
+    return;
+  }
+  const avail = CATS.filter(c => list.some(p => p[c.key] != null));
+  grid.innerHTML = avail.map(c => leaderCard(c, list)).join("");
+}
+
+function renderTable(list){
+  const {key, dir} = state.sort; const q = state.q.toLowerCase();
+  let rows = state.team ? list.filter(p => p.team.split("/").includes(state.team)) : list;
+  rows = rows.filter(p => !q || p.name.toLowerCase().includes(q) || full(p.team).toLowerCase().includes(q) || p.team.toLowerCase().includes(q))
+    .sort((a,b) => {
+      const A = a[key], B = b[key];
+      if (A == null && B == null) return 0; if (A == null) return 1; if (B == null) return -1;
+      return (typeof A === "string" ? A.localeCompare(B) : A - B) * dir;
+    });
+  $("#tbl thead").innerHTML = "<tr>" + COLS.map(c => `<th scope="col" data-key="${c.key}" ${c.key === key ? `aria-sort="${dir < 0 ? "descending" : "ascending"}"` : ""}><button type="button">${c.label}</button></th>`).join("") + "</tr>";
+  $("#tbl tbody").innerHTML = rows.length ? rows.map(p => "<tr>" + COLS.map(c => {
+    if (c.key === "name") return `<td class="pl">${esc(p.name)}</td>`;
+    if (c.key === "team") return `<td><span class="tag">${esc(p.team)}</span></td>`;
+    const v = p[c.key]; const cls = [v == null ? "na" : "", c.key === key ? "sorted" : ""].join(" ").trim();
+    return `<td${cls ? ` class="${cls}"` : ""}>${c.key === "g" ? (v ?? "—") : fmt(v, c.pct)}</td>`;
+  }).join("") + "</tr>").join("") : `<tr><td colspan="${COLS.length}" class="na" style="text-align:left">No players match.</td></tr>`;
+  const scope = state.set === "regular" ? "Regular season" : (state.round === "all" ? "All playoff games" : ROUNDS[state.round] || `Round ${state.round}`);
+  $("#tablesub").textContent = `${scope} · ${state.mode === "tot" ? "totals" : "per game"}`;
+}
+
+function renderControls(){
+  document.body.classList.toggle("mode-playoffs", state.set === "playoffs");
+  for (const b of document.querySelectorAll("[data-set]")) b.setAttribute("aria-pressed", String(b.dataset.set === state.set));
+  for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode));
+  $("#pocontrols").hidden = state.set !== "playoffs";
+  if (state.set === "playoffs"){
+    const avail = roundsAvailable();
+    if (state.round == null || (state.round !== "all" && !avail.includes(state.round))) state.round = avail.length ? avail[avail.length - 1] : 1;
+    $("#roundseg").innerHTML = [1,2,3].map(r => `<button type="button" data-round="${r}" aria-pressed="${state.round === r}" ${avail.includes(r) ? "" : "disabled"}>${ROUNDS[r]}</button>`).join("")
+      + `<button type="button" data-round="all" aria-pressed="${state.round === "all"}" ${avail.length ? "" : "disabled"}>All playoffs</button>`;
+    const chips = $("#statchips");
+    chips.hidden = state.round === "all";
+    chips.innerHTML = `<span class="lbl">Rank by</span>` + SERIES_STATS.map(k => `<button type="button" data-stat="${k}" aria-pressed="${state.stat === k}">${cat(k).label}</button>`).join("");
+  }
+}
+
+function render(){
+  const d = state.data; if (!d) return;
+  renderControls();
+  const list = currentList();
+  // team options come from the whole view
+  const teamsIn = state.set === "regular"
+    ? [...new Set(regularPlayers().flatMap(p => p.team.split("/")))]
+    : [...new Set((po()?.series || []).filter(s => state.round === "all" || s.round === state.round).flatMap(s => s.teams))];
+  teamsIn.sort();
+  const sel = $("#team");
+  sel.innerHTML = `<option value="">All teams</option>` + teamsIn.map(t => `<option value="${esc(t)}">${esc(full(t))}</option>`).join("");
+  if (!teamsIn.includes(state.team)) state.team = "";
+  sel.value = state.team;
+
+  const title = state.set === "playoffs" ? (state.round === "all" ? "Playoffs" : (ROUNDS[state.round] || "Playoffs")) : "";
+  $("#yr").textContent = d.season + (title ? " " + title : "");
+  $("#eyebrow").textContent = `WNBA · ${state.team ? full(state.team) : state.set === "playoffs" ? "Playoff leaders" : "Regular season leaders"} · ${state.mode === "tot" ? "Totals" : "Per game"}`;
+  const mg = minGames(list);
+  if (state.set === "regular"){
+    $("#qualnote").textContent = list.length ? `${list.length} players · ${state.qual ? `leaders need ${mg}+ games` : "ranking every player"}` : "";
+  } else {
+    const P = po(); const r = state.round;
+    const played = (P?.games || []).filter(g => g.final && (r === "all" || g.round === r)).length;
+    const nSeries = (P?.series || []).filter(s => r === "all" || s.round === r).length;
+    $("#qualnote").textContent = P ? `${r === "all" ? "All rounds" : ROUNDS[r]} · ${nSeries} series · ${played} game${played === 1 ? "" : "s"} played${state.qual ? " · leaders need half their series' games" : ""}` : "";
+  }
+  const src = state.set === "regular" ? d.regular : d.playoffs;
+  $("#source").innerHTML = src?.url ? `Source: <a href="${esc(src.url)}" target="_blank" rel="noopener">${state.set === "regular" ? "Basketball-Reference.com" : "ESPN box scores"}</a>` : "";
+  $("#footnote").textContent = state.set === "regular"
+    ? "Leaders need half the most games played. Shooting marks also need a minimum of attempts."
+    : "Series cards rank everyone who played in that series. Shooting marks need 5 FGA per game.";
+  const pn = $("#previewnote");
+  const note = state.set === "playoffs" ? d.playoffs?.sample_note : d.regular?.preview_note;
+  pn.hidden = !note; pn.textContent = note || "";
+  renderGrid(list); renderTable(list);
+}
+
+function wire(){
+  document.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b || b.disabled) return;
+    if (b.dataset.set){ state.set = b.dataset.set; store("wsl-set", state.set); render(); }
+    else if (b.dataset.mode){ state.mode = b.dataset.mode; store("wsl-mode", state.mode); render(); }
+    else if (b.dataset.round){ state.round = b.dataset.round === "all" ? "all" : +b.dataset.round; render(); }
+    else if (b.dataset.stat){ state.stat = b.dataset.stat; render(); }
+    else if (b.dataset.series){ const id = b.dataset.series; state.open.has(id) ? state.open.delete(id) : state.open.add(id); renderGrid(currentList()); }
+    else if (b.closest("th")){
+      const k = b.closest("th").dataset.key; const txt = COLS.find(c => c.key === k)?.txt;
+      state.sort = state.sort.key === k ? {key:k, dir:-state.sort.dir} : {key:k, dir: txt ? 1 : -1};
+      renderTable(currentList());
+    }
+  });
+  $("#team").addEventListener("change", e => { state.team = e.target.value; render(); });
+  $("#qual").addEventListener("change", e => { state.qual = e.target.checked; render(); });
+  $("#search").addEventListener("input", e => { state.q = e.target.value; renderTable(currentList()); });
+}
+
+async function load(){
+  wire();
+  try {
+    const r = await fetch("data/stats.json", {cache:"no-store"});
+    if (!r.ok) throw new Error(r.status);
+    state.data = await r.json();
+  } catch(e) {
+    $("#meta").textContent = "Couldn't load data/stats.json. If you opened this file directly, serve the folder instead (see README).";
+    return;
+  }
+  const d = state.data;
+  $("#meta").innerHTML = `Updated <b>${new Date(d.updated).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"})}</b><br>Basketball-Reference · ESPN`;
+  render();
+}
+load();
+</script>
+</body>
+</html>
