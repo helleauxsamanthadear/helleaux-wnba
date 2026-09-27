@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Update data/stats.json.
 
-Regular season: Basketball-Reference per-game and totals tables.
+Regular season: ESPN season stats (Basketball-Reference as a fallback).
 Playoffs: ESPN scoreboard + box scores, stored game by game so the page can
 group them by series and round.
 
@@ -113,7 +113,58 @@ def fetch_regular(season):
         for k in PCT:
             tot[k] = pgs.get(k)
         players.append({"name": name, "team": rec["team"], "pos": rec["pos"], "g": rec["g"], "pg": pgs, "tot": tot})
-    return {"label": "Regular Season", "url": BREF_PER_GAME.format(season=season), "players": players}
+    return {"label": "Regular Season", "source_name": "Basketball-Reference.com",
+            "url": BREF_PER_GAME.format(season=season), "players": players}
+
+
+# ---------------------------------------------------------------- regular season (ESPN, primary)
+ESPN_SEASON = ("https://site.web.api.espn.com/apis/common/v3/sports/basketball/wnba/statistics/byathlete"
+               "?region=us&lang=en&contentorigin=espn&isqualified=false&limit=1000&season={season}&seasontype=2"
+               "&sort=offensive.avgPoints:desc")
+ESPN_FIELDS = {  # ESPN stat name -> (our field, is_percent)
+    "avgMinutes": ("mp", False), "avgRebounds": ("trb", False), "avgPoints": ("pts", False),
+    "avgFieldGoalsMade": ("fg", False), "avgFieldGoalsAttempted": ("fga", False), "fieldGoalPct": ("fg_pct", True),
+    "avgThreePointFieldGoalsMade": ("fg3", False), "avgThreePointFieldGoalsAttempted": ("fg3a", False),
+    "threePointFieldGoalPct": ("fg3_pct", True), "avgFreeThrowsMade": ("ft", False),
+    "avgFreeThrowsAttempted": ("fta", False), "freeThrowPct": ("ft_pct", True), "avgAssists": ("ast", False),
+    "avgTurnovers": ("tov", False), "avgSteals": ("stl", False), "avgBlocks": ("blk", False),
+}
+
+
+def fetch_regular_espn(season):
+    data = get_json(ESPN_SEASON.format(season=season))
+    names = {c["name"]: c.get("names") or c.get("labels") or [] for c in data.get("categories", [])}
+    players = []
+    for a in data.get("athletes", []):
+        ath = a.get("athlete", {})
+        vals = {}
+        for cat in a.get("categories", []):
+            for n, v in zip(names.get(cat["name"], []), cat.get("values") or cat.get("totals") or []):
+                vals[n] = v
+        g = int(vals.get("gamesPlayed") or 0)
+        if not g:
+            continue
+        pg = {}
+        for src, (dst, is_pct) in ESPN_FIELDS.items():
+            v = vals.get(src)
+            try:
+                v = None if v is None else float(v)
+            except (TypeError, ValueError):
+                v = None
+            pg[dst] = None if v is None else round(v / 100, 4) if is_pct else round(v, 2)
+        tot = {k: (None if v is None else round(v * g)) for k, v in pg.items()}
+        for k in PCT:
+            tot[k] = pg.get(k)
+        if vals.get("points") is not None:
+            tot["pts"] = int(float(vals["points"]))
+        team = (ath.get("teamShortName") or (ath.get("team") or {}).get("abbreviation")
+                or ((ath.get("teams") or [{}])[-1]).get("abbreviation") or "")
+        players.append({"name": ath.get("displayName", ""), "team": code(team),
+                        "pos": (ath.get("position") or {}).get("abbreviation", ""), "g": g, "pg": pg, "tot": tot})
+    if not players:
+        return None
+    return {"label": "Regular Season", "source_name": "ESPN",
+            "url": f"https://www.espn.com/wnba/stats/player/_/season/{season}/seasontype/2", "players": players}
 
 
 # ---------------------------------------------------------------- playoffs (ESPN)
@@ -193,6 +244,9 @@ def fetch_playoffs(season, existing):
                 continue
             comp = ev["competitions"][0]
             teams = {c["homeAway"]: c for c in comp["competitors"]}
+            abbrs = [teams.get(k, {}).get("team", {}).get("abbreviation", "") for k in ("home", "away")]
+            if any(not a or a.upper() in ("TBD", "TBA") for a in abbrs):
+                continue  # future round, teams not decided yet
             note = next((n.get("headline", "") for n in comp.get("notes", []) if n.get("headline")), "")
             games[ev["id"]] = {
                 "id": ev["id"], "date": ev["date"], "note": note,
@@ -269,19 +323,27 @@ def main():
         "season": args.season,
         "updated": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "preview": False,
-        "source": "Basketball-Reference.com (regular season) · ESPN (playoff box scores)",
+        "source": "ESPN",
         "regular": existing.get("regular"),
         "playoffs": existing.get("playoffs"),
     }
 
     if not args.skip_regular:
-        try:
-            reg = fetch_regular(args.season)
+        reg = None
+        for name, fn in (("ESPN", fetch_regular_espn), ("Basketball-Reference", fetch_regular)):
+            try:
+                reg = fn(args.season)
+            except Exception as e:
+                print(f"Regular season from {name} failed ({e})", file=sys.stderr)
+                reg = None
             if reg and reg["players"]:
-                result["regular"] = reg
-                print(f"Regular season: {len(reg['players'])} players", file=sys.stderr)
-        except Exception as e:
-            print(f"Regular season failed ({e}); keeping previous data", file=sys.stderr)
+                print(f"Regular season: {len(reg['players'])} players from {name}", file=sys.stderr)
+                break
+            print(f"Regular season from {name}: no data", file=sys.stderr)
+        if reg and reg["players"]:
+            result["regular"] = reg
+        else:
+            print("Regular season: keeping previous data", file=sys.stderr)
 
     try:
         po = fetch_playoffs(args.season, existing.get("playoffs") or {})
