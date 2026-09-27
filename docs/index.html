@@ -431,7 +431,7 @@ function render(){
     $("#qualnote").textContent = P ? `${r === "all" ? "All rounds" : ROUNDS[r]} · ${nSeries} series · ${played} game${played === 1 ? "" : "s"} played${state.qual ? " · leaders need half their series' games" : ""}` : "";
   }
   const src = state.set === "regular" ? d.regular : d.playoffs;
-  $("#source").innerHTML = src?.url ? `Source: <a href="${esc(src.url)}" target="_blank" rel="noopener">${state.set === "regular" ? "Basketball-Reference.com" : "ESPN box scores"}</a>` : "";
+  $("#source").innerHTML = src?.url ? `Source: <a href="${esc(src.url)}" target="_blank" rel="noopener">${state.set === "regular" ? esc(src.source_name || "ESPN") : "ESPN box scores"}</a>` : "";
   $("#footnote").textContent = state.set === "regular"
     ? "Leaders need half the most games played. Shooting marks also need a minimum of attempts."
     : "Series cards rank everyone who played in that series. Shooting marks need 5 FGA per game.";
@@ -471,7 +471,7 @@ async function load(){
     return;
   }
   const d = state.data;
-  $("#meta").innerHTML = `Updated <b>${new Date(d.updated).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"})}</b><br>Basketball-Reference · ESPN`;
+  $("#meta").innerHTML = `Updated <b>${new Date(d.updated).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"})}</b><br>Stats: ${esc(d.regular?.source_name || "ESPN")}`;
   render();
 }
 load();
