@@ -173,6 +173,7 @@ ESPN_SUMMARY = "https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/su
 # ESPN abbreviations -> the codes the page uses
 TEAM_CODE = {"LV": "LVA", "NY": "NYL", "GS": "GSV", "CONN": "CON", "LA": "LAS", "PHX": "PHO", "WSH": "WAS"}
 ROUND_NAMES = {1: "First Round", 2: "Semifinals", 3: "Finals"}
+VALID_TEAMS = {"ATL", "CHI", "CON", "DAL", "GSV", "IND", "LVA", "LAS", "MIN", "NYL", "PHO", "POR", "SEA", "TOR", "WAS"}
 
 
 def code(abbr):
@@ -245,8 +246,8 @@ def fetch_playoffs(season, existing):
             comp = ev["competitions"][0]
             teams = {c["homeAway"]: c for c in comp["competitors"]}
             abbrs = [teams.get(k, {}).get("team", {}).get("abbreviation", "") for k in ("home", "away")]
-            if any(not a or a.upper() in ("TBD", "TBA") for a in abbrs):
-                continue  # future round, teams not decided yet
+            if any(code(a) not in VALID_TEAMS for a in abbrs):
+                continue  # future round, teams not decided yet (e.g. "TBD" or "Dream/Mystics")
             note = next((n.get("headline", "") for n in comp.get("notes", []) if n.get("headline")), "")
             games[ev["id"]] = {
                 "id": ev["id"], "date": ev["date"], "note": note,
@@ -268,8 +269,7 @@ def fetch_playoffs(season, existing):
             seen = by_team.setdefault(t, [])
             if not seen or seen[-1] != opp:
                 seen.append(opp)
-            if t == g["home"]:
-                g["round"] = len(seen)
+            g["round"] = max(g.get("round", 0), len(seen))
     series = {}
     for g in games.values():
         a, b = sorted([g["home"], g["away"]])
