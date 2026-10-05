@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "updated": "2026-10-05T12:26:07Z",
+ "updated": "2026-10-05T19:38:16Z",
  "preview": false,
  "source": "ESPN",
  "regular": {
@@ -10203,18 +10203,6 @@
     "series": "R2-GSV-LVA"
    },
    {
-    "id": "401918301",
-    "date": "2026-10-11T04:00Z",
-    "note": "WNBA Semifinals - Game 4 If Necessary",
-    "home": "NYL",
-    "away": "ATL",
-    "hs": 0,
-    "as": 0,
-    "final": false,
-    "round": 2,
-    "series": "R2-ATL-NYL"
-   },
-   {
     "id": "401918302",
     "date": "2026-10-11T04:00Z",
     "note": "WNBA Semifinals - Game 4 If Necessary",
@@ -10225,6 +10213,18 @@
     "final": false,
     "round": 2,
     "series": "R2-GSV-LVA"
+   },
+   {
+    "id": "401918301",
+    "date": "2026-10-11T18:00Z",
+    "note": "WNBA Semifinals - Game 4 If Necessary",
+    "home": "NYL",
+    "away": "ATL",
+    "hs": 0,
+    "as": 0,
+    "final": false,
+    "round": 2,
+    "series": "R2-ATL-NYL"
    },
    {
     "id": "401918303",
