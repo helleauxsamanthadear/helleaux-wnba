@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "updated": "2026-10-08T17:53:35Z",
+ "updated": "2026-10-09T11:59:49Z",
  "preview": false,
  "source": "ESPN",
  "regular": {
@@ -8284,7 +8284,7 @@
    },
    {
     "name": "Kayla Alexander",
-    "team": "MIN",
+    "team": "TOR",
     "pos": "C",
     "g": 4,
     "pg": {
@@ -10133,7 +10133,7 @@
    {
     "id": "401918295",
     "date": "2026-10-04T18:00Z",
-    "note": "Semifinals - Game 1",
+    "note": "WNBA Semifinals - Game 1",
     "home": "ATL",
     "away": "NYL",
     "hs": 92,
@@ -10145,7 +10145,7 @@
    {
     "id": "401918296",
     "date": "2026-10-04T20:00Z",
-    "note": "Semifinals - Game 1",
+    "note": "WNBA Semifinals - Game 1",
     "home": "GSV",
     "away": "LVA",
     "hs": 71,
