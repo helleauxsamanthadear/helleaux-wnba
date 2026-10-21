@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "updated": "2026-10-20T15:39:58Z",
+ "updated": "2026-10-21T10:22:59Z",
  "preview": false,
  "source": "ESPN",
  "regular": {
@@ -10268,6 +10268,18 @@
     "note": "WNBA Finals - Game 6 If Necessary",
     "home": "ATL",
     "away": "GSV",
+    "hs": 0,
+    "as": 0,
+    "final": false,
+    "round": 3,
+    "series": "R3-ATL-GSV"
+   },
+   {
+    "id": "401918311",
+    "date": "2026-11-01T00:00Z",
+    "note": "WNBA Finals - Game 7 If Necessary",
+    "home": "GSV",
+    "away": "ATL",
     "hs": 0,
     "as": 0,
     "final": false,
