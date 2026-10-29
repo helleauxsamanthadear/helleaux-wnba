@@ -1,6 +1,6 @@
 {
  "season": 2026,
- "updated": "2026-10-29T11:38:46Z",
+ "updated": "2026-10-29T17:26:47Z",
  "preview": false,
  "source": "ESPN",
  "regular": {
@@ -10268,8 +10268,8 @@
     "note": "WNBA Finals - Game 6",
     "home": "ATL",
     "away": "GSV",
-    "hs": 0,
-    "as": 0,
+    "hs": 46,
+    "as": 24,
     "final": false,
     "round": 3,
     "series": "R3-ATL-GSV"
